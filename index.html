@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>100 Ways to Say Sorry</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #050508;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: white;
+        }
+        
+        /* Layar Pembuka agar klik pertama terasa natural */
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #050508;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        .pulse-text {
+            font-size: 16px;
+            color: #d0d0e0;
+            letter-spacing: 2px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            display: block;
+        }
+        
+        /* Tombol mute kecil di pojok agar tetap bisa dimatikan jika mau */
+        #mute-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(40, 40, 60, 0.5);
+            color: rgba(255,255,255,0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            opacity: 0; /* Sembunyi sebelum mulai */
+        }
+    </style>
+</head>
+<body>
+    <!-- Layar Pembuka -->
+    <div id="start-overlay">
+        <div class="pulse-text">Ketuk Layar untuk Membuka</div>
+    </div>
+
+    <button id="mute-btn">🔊 Matikan Suara</button>
+    
+    <div id="canvas-container">
+        <canvas id="wheelCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            const dpr = window.devicePixelRatio || 1;
+            const size = Math.min(window.innerWidth, window.innerHeight);
+            
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+            
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const apologies = [
+            "I'm sorry", "I really am", "Forgive me", "I'm sorry from my heart",
+            "I'm grateful for you", "I love you, and I'm sorry", "Can we start over?", "I'm sorry. Always.",
+            "Please forgive me", "I take full responsibility", "That was my mistake", "I should have listened",
+            "I didn't mean to hurt you", "I'm sorry I let you down", "I messed up", "I'm truly sorry",
+            "I regret my words", "I was selfish", "I should have been there", "I'm sorry for yelling",
+            "I'm sorry for my harsh words", "I'd take it back if I could", "I wish I could undo it", "I'm sorry for the tears",
+            "I'm sorry for the hurt", "I can't lose you over this", "You matter more than winning", "I miss you, and I'm sorry",
+            "Tell me how to fix it", "I'm learning from this", "I'll be more patient", "I do better, I promise",
+            "I'm here to listen now", "Let me make it up to you", "I want to make it right", "No excuses, just sorry",
+            "I'm sorry I made you doubt", "I should have said it sooner", "I'm sorry I broke your trust", "I hurt someone I love",
+            "I'm sorry I wasn't fighting", "I was too proud to say it", "I'm sorry for the silence", "My words were unkind",
+            "I'm sorry, I was careless", "I look out for you", "I don't see your side", "I'm sorry I made you worry",
+            "I let my temper win", "Ignored what you needed", "I'm sorry I was late again", "Made it about me",
+            "Wasn't fair", "I'm sorry I attempted", "I'm sorry I dismissed you", "Judged too quickly",
+            "I acted out of anger", "I put my pride first", "I'm sorry I forgot", "I put unfair toll",
+            "I'm sorry I broke my promise", "You deserved better", "I'm sorry I was not honest", "I handled it badly",
+            "I'm ashamed of how I acted", "I let stress speak for me", "It was never your fault", "You didn't deserve that",
+            "I'm sorry I wasn't kind", "I was scared and lashed out", "I shouldn't have shown up", "I wasn't present",
+            "I misunderstood you", "I'm sorry I overreacted", "I'm sorry I blamed us", "I should have known better",
+            "I forgot what matters", "I took it out on you", "I made you feel small", "I made you feel unsafe",
+            "I'm sorry I held a grudge", "I'm sorry I wasn't gentler", "I let it go on too long", "I should have spoken first",
+            "I'm sorry I hid the truth", "You can trust me again", "Give me another chance", "I'm sorry, and I mean it",
+            "You are my world", "I cherish you", "Always in my heart", "My forever regret",
+            "I am growing", "I see your pain", "I value us", "I will do better",
+            "Stay with me", "I am here", "I love you"
+        ];
+
+        const N = apologies.length;
+        const spokes = [];
+        const framesPerWord = 30; // 0.5 detik per kata
+
+        for (let i = 0; i < N; i++) {
+            let angle = i * (2 * Math.PI / N);
+            let radius = 105 + (i % 5) * 35;
+            spokes.push({
+                text: apologies[i],
+                angle: angle,
+                base_radius: radius,
+                born: i * framesPerWord 
+            });
+        }
+
+        const stars = [];
+        for (let i = 0; i < 60; i++) {
+            stars.push({
+                x: Math.random() * 2000,
+                y: Math.random() * 2000,
+                radius: Math.random() * 1.5 + 0.5,
+                alpha: Math.random() * 0.7 + 0.2,
+                speed: Math.random() * 0.2 + 0.05
+            });
+        }
+
+        // Setup Web Audio API
+        let audioCtx = null;
+        let isPlayingMusic = false;
+        let musicInterval = null;
+        
+        const chords = [
+            [261.63, 329.63, 392.00], // C
+            [261.63, 349.23, 440.00], // F
+            [220.00, 261.63, 329.63], // Am
+            [196.00, 246.94, 293.66]  // G
+        ];
+        
+        let chordIndex = 0;
+
+        function playPianoChord() {
+            if (!isPlayingMusic) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let chord = chords[chordIndex];
+                
+                chord.forEach(freq => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 2.5);
+                });
+                
+                chordIndex = (chordIndex + 1) % chords.length;
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        let hasStarted = false;
+        const overlay = document.getElementById('start-overlay');
+        const muteBtn = document.getElementById('mute-btn');
+
+        // Memulai seluruh pengalaman saat layar pertama kali diketuk
+        overlay.addEventListener('click', () => {
+            if (hasStarted) return;
+            hasStarted = true;
+            
+            // Fade out overlay
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 1000);
+            
+            // Tampilkan tombol mute kecil
+            muteBtn.style.opacity = '1';
+
+            // Inisiasi Musik
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            isPlayingMusic = true;
+            playPianoChord(); 
+            musicInterval = setInterval(playPianoChord, 2000);
+        });
+
+        // Kontrol Mute/Unmute
+        muteBtn.addEventListener('click', () => {
+            if (isPlayingMusic) {
+                isPlayingMusic = false;
+                muteBtn.innerText = "🔇 Suara Mati";
+                clearInterval(musicInterval);
+            } else {
+                isPlayingMusic = true;
+                muteBtn.innerText = "🔊 Matikan Suara";
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                playPianoChord();
+                musicInterval = setInterval(playPianoChord, 2000);
+            }
+        });
+
+        let tick = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const w = parseFloat(canvas.style.width) || 600;
+            const h = parseFloat(canvas.style.height) || 600;
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const scaleFactor = w / 600;
+
+            let bgGrad = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, w * 0.8);
+            bgGrad.addColorStop(0, '#1c1726');
+            bgGrad.addColorStop(0.5, '#0c0b12');
+            bgGrad.addColorStop(1, '#040307');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            for (let star of stars) {
+                star.y -= star.speed;
+                if (star.y < 0) star.y = h;
+                
+                ctx.beginPath();
+                ctx.arc(star.x % w, star.y, star.radius * scaleFactor, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+            }
+
+            if (!hasStarted) {
+                let centerRadius = 72 * scaleFactor;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, centerRadius, 0, 2 * Math.PI);
+                ctx.fillStyle = "#08070d";
+                ctx.fill();
+                ctx.lineWidth = 2 * scaleFactor;
+                ctx.strokeStyle = "#5a5570";
+                ctx.stroke();
+                return;
+            }
+
+            let global_rotation = tick * 0.002;
+
+            for (let p of spokes) {
+                if (tick < p.born) continue;
+
+                let progress = Math.min(1.0, (tick - p.born) / 20.0);
+                let current_radius = (p.base_radius * scaleFactor) * progress;
+                let current_angle = p.angle + global_rotation;
+
+                let x = centerX + Math.cos(current_angle) * current_radius;
+                let y = centerY + Math.sin(current_angle) * current_radius;
+
+                let alpha = progress * 0.9;
+
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(current_angle + Math.PI / 2);
+
+                let fontSize = Math.max(11, Math.floor(13 * scaleFactor));
+                ctx.font = `500 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+                ctx.fillStyle = `rgba(235, 240, 255, ${alpha})`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(p.text, 0, 0);
+                ctx.restore();
+            }
+
+            let centerRadius = 72 * scaleFactor;
+
+            ctx.shadowColor = 'rgba(100, 120, 255, 0.2)';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, centerRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = "#08070d";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.lineWidth = 2 * scaleFactor;
+            ctx.strokeStyle = "#5a5570";
+            ctx.stroke();
+
+            let currentIndex = Math.floor(tick / framesPerWord);
+            if (currentIndex >= N) {
+                currentIndex = N - 1;
+            }
+            let activeWord = apologies[currentIndex];
+
+            let f2 = Math.max(13, Math.floor(16 * scaleFactor));
+            ctx.font = `700 ${f2}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.fillText(activeWord, centerX, centerY);
+
+            let current_num = currentIndex + 1;
+            let fNum = Math.max(10, Math.floor(12 * scaleFactor));
+            ctx.font = `500 ${fNum}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            ctx.fillStyle = "#8a8aa8";
+            ctx.fillText("N° " + current_num, centerX, centerY + centerRadius + (22 * scaleFactor));
+
+            tick++;
+        }
+
+        animate();
+    </script>
+</body>
+</html>
